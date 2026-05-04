@@ -163,7 +163,7 @@ export default function SignupPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-[440px] z-10 flex flex-col items-center"
+        className="w-full max-w-[440px] z-10 flex flex-col items-center -translate-x-6"
       >
         <AnimatePresence mode="wait">
           <motion.div
