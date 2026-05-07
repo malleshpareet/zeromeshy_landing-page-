@@ -2,22 +2,74 @@
 
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import Aurora from "./Aurora";
+import { useEffect, useState, useRef } from "react";
+import dynamic from "next/dynamic";
+
+const Aurora = dynamic(() => import("./Aurora"), { ssr: false });
 
 export default function Hero() {
+  const [showAurora, setShowAurora] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const rm = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setShowAurora(mq.matches && !rm.matches);
+    update();
+    const listener = () => update();
+    try {
+      if (mq.addEventListener) mq.addEventListener('change', listener);
+      else mq.addListener(listener as any);
+      if (rm.addEventListener) rm.addEventListener('change', listener);
+      else rm.addListener(listener as any);
+    } catch (e) {}
+    return () => {
+      try {
+        if (mq.removeEventListener) mq.removeEventListener('change', listener);
+        else mq.removeListener(listener as any);
+        if (rm.removeEventListener) rm.removeEventListener('change', listener);
+        else rm.removeListener(listener as any);
+      } catch (e) {}
+    };
+  }, []);
+
+  const auroraRef = useRef<HTMLDivElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const el = auroraRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      });
+    }, { root: null, rootMargin: '200px', threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="relative pt-40 pb-20 px-6 flex flex-col items-center text-center overflow-hidden min-h-screen">
       {/* Layer 1: Solid Background */}
       <div className="absolute inset-0 bg-black z-0" />
 
-      {/* Layer 2: Aurora Effect */}
-      <div className="absolute inset-0 z-1 pointer-events-none overflow-hidden">
-        <Aurora
-          colorStops={["#b0ff2e", "#5227FF", "#b0ff2e"]}
-          blend={0.5}
-          amplitude={1.5}
-          speed={0.8}
-        />
+      {/* Layer 2: Aurora Effect (lazy-loaded on desktop, respects prefers-reduced-motion) */}
+      <div ref={auroraRef} className="absolute inset-0 z-1 pointer-events-none overflow-hidden" aria-hidden>
+        {showAurora && isVisible ? (
+          <Aurora
+            colorStops={["#b0ff2e", "#5227FF", "#b0ff2e"]}
+            blend={0.5}
+            amplitude={1.5}
+            speed={0.8}
+          />
+        ) : (
+          // Lightweight fallback for small screens or reduced motion
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0b0b0b] to-black pointer-events-none" />
+        )}
       </div>
 
       {/* Layer 2.5: Bottom Fade-out Gradient */}
