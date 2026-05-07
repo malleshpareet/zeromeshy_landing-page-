@@ -72,15 +72,16 @@ struct ColorStop {
 
 #define COLOR_RAMP(colors, factor, finalColor) {              \
   int index = 0;                                            \
-  for (int i = 0; i < 2; i++) {                               \
-     ColorStop currentColor = colors[i];                    \
-     bool isInBetween = currentColor.position <= factor;    \
-     index = int(mix(float(index), float(i), float(isInBetween))); \
+  for (int i = 0; i < 2; i++) {                             \
+    if (factor >= colors[i].position) {                     \
+      index = i;                                            \
+    }                                                       \
   }                                                         \
   ColorStop currentColor = colors[index];                   \
   ColorStop nextColor = colors[index + 1];                  \
   float range = nextColor.position - currentColor.position; \
-  float lerpFactor = (factor - currentColor.position) / range; \
+  float safeRange = max(range, 1e-6);                       \
+  float lerpFactor = clamp((factor - currentColor.position) / safeRange, 0.0, 1.0); \
   finalColor = mix(currentColor.color, nextColor.color, lerpFactor); \
 }
 
@@ -185,23 +186,20 @@ export default function Aurora(props: AuroraProps) {
 
     let animateId = 0;
     const update = (t: number) => {
-      animateId = requestAnimationFrame(update);
       const { time = t * 0.01, speed = 1.0 } = propsRef.current;
       if (program) {
         program.uniforms.uTime.value = time * speed * 0.1;
         program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
         program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-        const stops = propsRef.current.colorStops ?? colorStops;
-        program.uniforms.uColorStops.value = stops.map((hex: string) => {
-          const c = new Color(hex);
-          return [c.r, c.g, c.b];
-        });
+        // Use precomputed colorStopsArray to avoid allocations each frame
+        program.uniforms.uColorStops.value = colorStopsArray;
         renderer.render({ scene: mesh });
       }
+      animateId = requestAnimationFrame(update);
     };
-    animateId = requestAnimationFrame(update);
 
     resize();
+    animateId = requestAnimationFrame(update);
 
     return () => {
       cancelAnimationFrame(animateId);
@@ -209,9 +207,15 @@ export default function Aurora(props: AuroraProps) {
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);
       }
+      try {
+        if (program && (program as any).dispose) (program as any).dispose();
+        if (mesh && (mesh as any).dispose) (mesh as any).dispose();
+        if (geometry && (geometry as any).dispose) (geometry as any).dispose();
+        if ((renderer as any).dispose) (renderer as any).dispose();
+      } catch (e) {}
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [amplitude]);
+  }, [amplitude, blend, colorStops]);
 
   return <div ref={ctnDom} className="w-full h-full" />;
 }

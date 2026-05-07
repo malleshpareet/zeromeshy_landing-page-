@@ -21,7 +21,7 @@ export default function DashboardMockup() {
   const springScale = useSpring(scale, { stiffness: 100, damping: 30 });
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-20 md:pb-40 -mt-48 md:-mt-72 z-10 perspective-[1200px]">
+    <div ref={containerRef} className="relative w-full max-w-[1400px] mx-auto px-4 md:px-6 pb-20 md:pb-40 -mt-40 md:-mt-60 z-10 perspective-[1200px]">
       {/* Background glow behind image */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#b0ff2e]/10 blur-[120px] rounded-full -z-10 pointer-events-none" />
 
